@@ -82,13 +82,18 @@ architecture pipelined of prisc is
 	end component;
 
 signal zeros, prc_in, prc_out, palu_out, malu_out, codemem_out, ir_out_p0, ir_out_pa, ir_out_pb, ir_out_pc, ir_out_pd, npc_out_p0, npc_out_pb,
-npc_out_pa, rf_D1, rf_D2, rf_D3, npc_out_pd, memd_out_pd, t3_out_pd, datamem_a, datamem_out, datamem_din , t1_in, t2_out_pb, t2_out_pc, t2_out_pd,
-t1_out_pb, t3_out_pb, npc_out_pc, t1_out_pc, t1_out_pd, t3_out_pc, alu_1, alu_2, ir_out_pb_50, ir_out_pb_80, ir_out_pd_80, ir : std_logic_vector(15 downto 0) := (others => '0');
+	npc_out_pa, rf_D1, rf_D2, rf_D3, npc_out_pd, memd_out_pd, t3_out_pd, datamem_a, datamem_out, datamem_din , t1_in, t2_out_pb, t2_out_pc, t2_out_pd,
+	t1_out_pb, t3_out_pb, npc_out_pc, t1_out_pc, t1_out_pd, t3_out_pc, alu_1, alu_2, ir_out_pb_50, ir_out_pb_80, ir_out_pd_80, t1_out_p0, t2_out_p0,
+	t3_out_p0, memd_out_p0, ir_in_pa, npc_in_pa, t1_in_pa, t2_in_pa, t3_in_pa, memd_in_pa, t1_out_pa, t2_out_pa, t3_out_pa, memd_out_pa, ir_in_pb,
+	npc_in_pb, t1_in_pb, t2_in_pb, t3_in_pb, memd_in_pb, memd_out_pb, ir_in_pc, npc_in_pc, t1_in_pc, t2_in_pc, t3_in_pc, memd_in_pc, memd_out_pc,
+	ir_in_pd, npc_in_pd, t1_in_pd, t2_in_pd, t3_in_pd, memd_in_pd : std_logic_vector(15 downto 0) := (others => '0');
 signal one : std_logic_vector(15 downto 0) := (0 => '1', others => '0');
-signal pc_en, prc_en, codemem_init, p0_en, pa_en, pb_en, pd_en, rf_wr, rf_rst, cen, zen, datamem_init, datamem_rd,
-datamem_wr, zin, zout, cin, cout, alu_op1, iter_in, iter_out, iter_en : std_logic := '0';
+signal pc_en, prc_en, codemem_init, p0_en, pa_en, pb_en, pd_en, rf_wr, rf_rst, cen, zen, datamem_init, datamem_rd, z_out_p0, c_out_p0, z_out_pa, c_out_pa,
+	z_in_pa, c_in_pa, z_out_pb, c_out_pb, z_in_pb, c_in_pb, z_out_pc, c_out_pc, z_in_pc, c_in_pc, z_out_pd, c_out_pd, z_in_pd, c_in_pd, datamem_wr, zin,
+	zout, cin, cout, alu_op1, iter_in, iter_out, iter_en, lm_fin, sm_fin : std_logic := '0';
 signal decoded_contr, contr_in_pa, contr_in_pb, contr_in_pc, contr_in_pd, contr_p0_out, contr_pa_out, contr_pb_out, contr_pc_out, contr_pd_out : std_logic_vector(18 downto 0) := (others => '0');
-signal pe_out,rf_A1,rf_A2,rf_A3 : std_logic_vector(2 downto 0) := "000";
+signal pe_out,rf_A1,rf_A2,rf_A3, lm_index, sm_index : std_logic_vector(2 downto 0) := "000";
+signal op_a, op_b, op_c, op_d : std_logic_vector (3 downto 0) := "0000";
 
 begin
 
@@ -138,7 +143,7 @@ lm_pe: pr_encoder port map (ir_out_pd(7 downto 0), lm_index, lm_fin);
 
 process(clk, rst)
 	begin
-		pc_in <= palu_out;
+		prc_in <= palu_out;
 		if (contr_pa_out(18) = '1') then
 			rf_A1 <= sm_index;
 		else
@@ -216,7 +221,7 @@ process(clk, rst)
 			t2_in_pa <= (others => '0');
 			t3_in_pa <= (others => '0');
 			memd_in_pa <= (others => '0');
-		elsif ((op_c = "0111") and (not sm_fin)) then
+		elsif ((op_c = "0111") and (sm_fin = '0')) then
 			-- pc_out goes to pa_in
 			ir_in_pa <= ir_out_pc;
 			npc_in_pa <= npc_out_pc;
@@ -255,7 +260,7 @@ process(clk, rst)
 			t3_in_pb <= (others => '0');
 			memd_in_pb <= (others => '0');
 
-		elsif ((op_d = "0110") and (not lm_fin)) then
+		elsif ((op_d = "0110") and (lm_fin = '0')) then
 			-- pb_in <= pd_out
 			ir_in_pb <= ir_out_pd;
 			npc_in_pb <= npc_out_pd;

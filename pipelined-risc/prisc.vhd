@@ -40,6 +40,11 @@ architecture pipelined of prisc is
 				Y_out: out std_logic_vector(15 downto 0)); 
 	end component; 
 
+	component comparator is
+	  port ( X, Y : in std_logic_vector(15 downto 0);
+	  		eq : out std_logic);
+	end component ;
+
 	component rf is 
 		port( A1,A2,A3 : in std_logic_vector(2 downto 0);
 			  D3: in std_logic_vector(15 downto 0);
@@ -86,12 +91,12 @@ signal zeros, prc_in, prc_out, palu_out, malu_out, codemem_out, ir_out_p0, ir_ou
 	t1_out_pb, t3_out_pb, npc_out_pc, t1_out_pc, t1_out_pd, t3_out_pc, alu_1, alu_2, ir_out_pb_50, ir_out_pb_80, ir_out_pd_80, t1_out_p0, t2_out_p0,
 	t3_out_p0, memd_out_p0, ir_in_pa, npc_in_pa, t1_in_pa, t2_in_pa, t3_in_pa, memd_in_pa, t1_out_pa, t2_out_pa, t3_out_pa, memd_out_pa, ir_in_pb,
 	npc_in_pb, t1_in_pb, t2_in_pb, t3_in_pb, memd_in_pb, memd_out_pb, ir_in_pc, npc_in_pc, t1_in_pc, t2_in_pc, t3_in_pc, memd_in_pc, memd_out_pc,
-	ir_in_pd, npc_in_pd, t1_in_pd, t2_in_pd, t3_in_pd, memd_in_pd : std_logic_vector(15 downto 0) := (others => '0');
+	ir_in_pd, npc_in_pd, t1_in_pd, t2_in_pd, t3_in_pd, memd_in_pd, ir_in_p0, npc_in_p0, t1_in_p0, t2_in_p0, t3_in_p0, memd_in_p0: std_logic_vector(15 downto 0) := (others => '0');
 signal one : std_logic_vector(15 downto 0) := (0 => '1', others => '0');
 signal pc_en, prc_en, codemem_init, p0_en, pa_en, pb_en, pd_en, rf_wr, rf_rst, cen, zen, datamem_init, datamem_rd, z_out_p0, c_out_p0, z_out_pa, c_out_pa,
 	z_in_pa, c_in_pa, z_out_pb, c_out_pb, z_in_pb, c_in_pb, z_out_pc, c_out_pc, z_in_pc, c_in_pc, z_out_pd, c_out_pd, z_in_pd, c_in_pd, datamem_wr, zin,
-	zout, cin, cout, alu_op1, iter_in, iter_out, iter_en, lm_fin, sm_fin : std_logic := '0';
-signal decoded_contr, contr_in_pa, contr_in_pb, contr_in_pc, contr_in_pd, contr_p0_out, contr_pa_out, contr_pb_out, contr_pc_out, contr_pd_out : std_logic_vector(18 downto 0) := (others => '0');
+	zout, cin, cout, alu_op1, iter_in, iter_out, iter_en, lm_fin, sm_fin, branch_eq, c_in_p0, z_in_p0 : std_logic := '0';
+signal decoded_contr, contr_in_pa, contr_in_pb, contr_in_pc, contr_in_pd, contr_p0_out, contr_pa_out, contr_pb_out, contr_pc_out, contr_pd_out, contr_in_p0 : std_logic_vector(18 downto 0) := (others => '0');
 signal pe_out,rf_A1,rf_A2,rf_A3, lm_index, sm_index : std_logic_vector(2 downto 0) := "000";
 signal op_a, op_b, op_c, op_d : std_logic_vector (3 downto 0) := "0000";
 
@@ -103,10 +108,12 @@ codemem: memory port map ('0', '1', codemem_init, prc_out, zeros, codemem_out);
 palu: alu port map (X => prc_out, Y => one, x0 => '1', x1 => '1', C_in => '0', S => palu_out);
 -- Instruction Decode
 dec: decoder port map (ir_out_p0(15 downto 12), decoded_contr);
-pipe0: pipe port map (ir_in => codemem_out, npc_in => palu_out, t1_in => zeros, t2_in => zeros, t3_in => zeros, memd_in => zeros, contr_in => "0000000000000000000",
+-- pipe0: pipe port map (ir_in => codemem_out, npc_in => palu_out, t1_in => zeros, t2_in => zeros, t3_in => zeros, memd_in => zeros, contr_in => "0000000000000000000",
+--						pipe_en => p0_en, clk => clk, ir_out => ir_out_p0, npc_out => npc_out_p0, contr_out => contr_p0_out, t1_out => t1_out_p0, t2_out => t2_out_p0,
+--						t3_out => t3_out_p0, memd_out => memd_out_p0, c_in => '0', z_in => '0', z_out => z_out_p0, c_out => c_out_p0);
+pipe0: pipe port map (ir_in => ir_in_p0, npc_in => npc_in_p0, t1_in => t1_in_p0, t2_in => t2_in_p0, t3_in => t3_in_p0, memd_in => memd_in_p0, contr_in => contr_in_p0,
 						pipe_en => p0_en, clk => clk, ir_out => ir_out_p0, npc_out => npc_out_p0, contr_out => contr_p0_out, t1_out => t1_out_p0, t2_out => t2_out_p0,
-						t3_out => t3_out_p0, memd_out => memd_out_p0, c_in => '0', z_in => '0', z_out => z_out_p0, c_out => c_out_p0);
-
+						t3_out => t3_out_p0, memd_out => memd_out_p0, c_in => c_in_p0, z_in => z_in_p0, c_out => c_out_p0, z_out => z_out_p0);
 -- Register Read
 rf_main: rf port map (rf_A1, rf_A2, rf_A3, rf_D3, clk, rf_wr, rf_rst, rf_D1, rf_D2);
 -- pipeA: pipe port map (ir_in => ir_out_p0, npc_in => npc_out_p0, t1_in => zeros, t2_in => zeros, t3_in => zeros, memd_in => zeros, contr_in => contr_pa_in, pipe_en => pa_en,
@@ -137,7 +144,7 @@ pd_se7: se7 port map (ir_out_pd(8 downto 0), '0', ir_out_pd_80);
 car: dregister_1 port map (cin, cout, cen, clk);
 zer: dregister_1 port map (zin, zout, zen, clk);
 iter: dregister_1 port map (iter_in, iter_out, iter_en, clk);
-
+branch_comp: comparator port map (t1_out_pb, t2_out_pb, branch_eq);
 sm_pe: pr_encoder port map (ir_out_pc(7 downto 0), sm_index, sm_fin);
 lm_pe: pr_encoder port map (ir_out_pd(7 downto 0), lm_index, lm_fin);
 
@@ -207,7 +214,35 @@ process(clk, rst)
 		op_b <= ir_out_pb(15 downto 12);
 		op_c <= ir_out_pc(15 downto 12);
 		op_d <= ir_out_pd(15 downto 12);
-			
+		
+		-- Mapping of Pipe 0
+		if ((op_b <= "1100") and (branch_eq = '1')) then
+			-- Flush
+			ir_in_p0 <= (others => '1');
+			contr_in_p0 <= (others => '0');
+
+			c_in_p0 <= '0';
+			z_in_p0 <= '0';
+			npc_in_p0 <= (others => '0');
+			t1_in_p0 <= (others => '0');
+			t2_in_p0 <= (others => '0');
+			t3_in_p0 <= (others => '0');
+			memd_in_p0 <= (others => '0');
+		else
+			-- P0 directly from flow
+			ir_in_p0 <= codemem_out;
+			npc_in_p0 <= palu_out;
+
+			t1_in_p0 <= (others => '0');
+			t2_in_p0 <= (others => '0');
+			t3_in_p0 <= (others => '0');
+			contr_in_p0 <= (others => '0');
+			c_in_p0 <= '0';
+			z_in_p0 <= '0';
+			memd_in_p0 <= (others => '0');
+		end if;
+
+
 		-- Mapping of Pipe A
 		if (op_a = "0111") then
 			-- Flush
@@ -286,6 +321,7 @@ process(clk, rst)
 		end if;
 
 		-- Mapping of Pipe C
+
 		t3_in_pc <= malu_out;
 
 		ir_in_pc <= ir_out_pb;
@@ -297,6 +333,8 @@ process(clk, rst)
 		c_in_pc <= c_out_pb;
 		z_in_pc <= z_out_pb;
 
+
+
 		-- Mapping of Pipe D
 		memd_in_pd <= datamem_out;
 
@@ -307,7 +345,12 @@ process(clk, rst)
 		t3_in_pd <= t3_out_pc;
 		contr_in_pd <= contr_pc_out;
 		c_in_pd <= c_out_pc;
-		z_in_pd <= z_out_pc;		
+		z_in_pd <= z_out_pc;
+
+
+
+
+
 
 	end process;
 end pipelined;

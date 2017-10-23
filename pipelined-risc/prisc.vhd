@@ -321,17 +321,57 @@ process(clk, rst)
 		end if;
 
 		-- Mapping of Pipe C
+		if (((op_b = "0010") or (op_b(3 downto 1) = "000")) and (op_c = "0100")) then -- LW and Arith
+			if ((op_b = "0001") and (ir_out_pc(12 downto 10) = ir_out_pb(12 downto 10))) then -- ADI, checking RA only
+				-- Flush
+				ir_in_pc <= (others => '1');
+				contr_in_pc <= (others => '0');
+				c_in_pc <= '0';
+				z_in_pc <= '0';
+				npc_in_pc <= (others => '0');
+				t1_in_pc <= (others => '0');
+				t2_in_pc <= (others => '0');
+				t3_in_pc <= (others => '0');
+				memd_in_pc <= (others => '0');
+			elsif (ir_out_pc(12 downto 10) = ir_out_pb(12 downto 10) or (ir_out_pc(12 downto 10) = ir_out_pb(9 downto 7))) then
+				-- Also flush
+				ir_in_pc <= (others => '1');
+				contr_in_pc <= (others => '0');
+				c_in_pc <= '0';
+				z_in_pc <= '0';
+				npc_in_pc <= (others => '0');
+				t1_in_pc <= (others => '0');
+				t2_in_pc <= (others => '0');
+				t3_in_pc <= (others => '0');
+				memd_in_pc <= (others => '0');
+			else
+				-- Directly Mapping from pb
+				t3_in_pc <= malu_out;
 
-		t3_in_pc <= malu_out;
+				ir_in_pc <= ir_out_pb;
+				npc_in_pc <= npc_out_pb;
+				t1_in_pc <= t1_out_pb;
+				t2_in_pc <= t2_out_pb;
+				memd_in_pc <= memd_out_pb;
+				contr_in_pc <= contr_pb_out;
+				c_in_pc <= c_out_pb;
+				z_in_pc <= z_out_pb;
+			end if;
+		else
+			-- Directly Mapping from pb
+			t3_in_pc <= malu_out;
 
-		ir_in_pc <= ir_out_pb;
-		npc_in_pc <= npc_out_pb;
-		t1_in_pc <= t1_out_pb;
-		t2_in_pc <= t2_out_pb;
-		memd_in_pc <= memd_out_pb;
-		contr_in_pc <= contr_pb_out;
-		c_in_pc <= c_out_pb;
-		z_in_pc <= z_out_pb;
+			ir_in_pc <= ir_out_pb;
+			npc_in_pc <= npc_out_pb;
+			t1_in_pc <= t1_out_pb;
+			t2_in_pc <= t2_out_pb;
+			memd_in_pc <= memd_out_pb;
+			contr_in_pc <= contr_pb_out;
+			c_in_pc <= c_out_pb;
+			z_in_pc <= z_out_pb;		
+		end if;
+
+
 
 
 

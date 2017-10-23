@@ -333,6 +333,7 @@ process(clk, rst)
 				t2_in_pc <= (others => '0');
 				t3_in_pc <= (others => '0');
 				memd_in_pc <= (others => '0');
+				pb_en <= '0';
 			elsif (ir_out_pc(12 downto 10) = ir_out_pb(12 downto 10) or (ir_out_pc(12 downto 10) = ir_out_pb(9 downto 7))) then
 				-- Also flush
 				ir_in_pc <= (others => '1');
@@ -344,10 +345,11 @@ process(clk, rst)
 				t2_in_pc <= (others => '0');
 				t3_in_pc <= (others => '0');
 				memd_in_pc <= (others => '0');
+				pb_en <= '0';
 			else
 				-- Directly Mapping from pb
 				t3_in_pc <= malu_out;
-
+				pb_en <= '1';
 				ir_in_pc <= ir_out_pb;
 				npc_in_pc <= npc_out_pb;
 				t1_in_pc <= t1_out_pb;
@@ -360,7 +362,7 @@ process(clk, rst)
 		else
 			-- Directly Mapping from pb
 			t3_in_pc <= malu_out;
-
+			pb_en <= '1';
 			ir_in_pc <= ir_out_pb;
 			npc_in_pc <= npc_out_pb;
 			t1_in_pc <= t1_out_pb;
@@ -370,10 +372,6 @@ process(clk, rst)
 			c_in_pc <= c_out_pb;
 			z_in_pc <= z_out_pb;		
 		end if;
-
-
-
-
 
 		-- Mapping of Pipe D
 		memd_in_pd <= datamem_out;
@@ -388,7 +386,44 @@ process(clk, rst)
 		z_in_pd <= z_out_pc;
 
 
+		-- Enable signals for the pipes: Stalling
+		
+		pd_en <= '1';
+		pc_en <= '1';
+		-- pb_en updated while mapping pipe C (refer flushing logic above)
 
+		-- Pipe A enable
+		if (((op_b = "0010") or (op_b(3 downto 1) = "000")) and (op_c = "0100")) then -- LW and Arith conditions
+			if (((op_b = "0001") and (ir_out_pc(12 downto 10) = ir_out_pb(12 downto 10))) or (ir_out_pc(12 downto 10) = ir_out_pb(12 downto 10) or (ir_out_pc(12 downto 10) = ir_out_pb(9 downto 7)))) then -- Checking R-Match
+				-- Flushing & Stalling
+				pa_en <= '0';
+			else
+				-- Register match failed; Load-Arith implies no LM, hence no stall
+				pa_en <= '1';
+			end if;
+		elsif ((op_b = "0110") or (op_c = "0110") or ((op_d = "0110") and (lm_fin = '0'))) then -- LM and not complete
+			pa_en <= '0';
+		else
+			pa_en <= '1';
+		end if;
+
+		-- Pipe 0 enable
+		if ((op_a = "0111") or (op_b = "0111") or ((op_c = "0111") and (sm_fin = '0'))) then -- SM and not complete
+			-- Stall
+			p0_en <= '0';
+		elsif ((op_b = "0110") or (op_c = "0110") or ((op_d = "0110") and (lm_fin = '0'))) then -- LM and not complete
+			p0_en <= '0';
+		elsif (((op_b = "0010") or (op_b(3 downto 1) = "000")) and (op_c = "0100")) then -- LW and Arith conditions
+			if (((op_b = "0001") and (ir_out_pc(12 downto 10) = ir_out_pb(12 downto 10))) or (ir_out_pc(12 downto 10) = ir_out_pb(12 downto 10) or (ir_out_pc(12 downto 10) = ir_out_pb(9 downto 7)))) then -- Checking R-Match
+				-- Flushing & Stalling
+				p0_en <= '0';
+			else
+				-- Register match failed; No LM-SM either, and hence clear.
+				pa_en <= '1';
+			end if;
+		else
+			p0_en <= '1';
+		end if;
 
 
 
